@@ -48,6 +48,9 @@ func logUptime(ctx context.Context, db *bolt.DB, notifyChan chan int64) {
 	var lastStatus bool
 
 	db.Update(func(tx *bolt.Tx) error {
+		// Create our bucket to store the changes of state, so we have some
+		// persistence between runs and can do more complex things with the data
+		// later on.
 		_, err := tx.CreateBucketIfNotExists([]byte("stateChanges"))
 		if err != nil {
 			return fmt.Errorf("Could not find or create bucket: %s", err)
@@ -94,12 +97,16 @@ func checkNetPresence(ip string) bool {
 		log.Fatalf("Total failure: %s", err.Error())
 	}
 
+	// Only try once before notifying upstream
 	pinger.Count = 1
+	// A second should do, adjust if necessary
 	pinger.Timeout = 1000 * time.Millisecond
+
 	pinger.OnRecv = func(pkt *ping.Packet) {
 		// All we need to do here is notify.
 		up = true
 	}
+
 	// Run once, return whatever we get.
 	pinger.Run()
 	return up

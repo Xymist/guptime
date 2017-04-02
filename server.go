@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -24,6 +23,8 @@ func server(db *bolt.DB, nc chan int64) {
 	log.Fatal(http.ListenAndServe("127.0.0.1:9000", nil))
 }
 
+// Websockets because A: neat, and B: the data change here is hopefully infrequent,
+// so polling would be extremely wasteful; we're better off pushing it as it arrives.
 func serveWS(db *bolt.DB, nc chan int64, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -38,14 +39,16 @@ func serveWS(db *bolt.DB, nc chan int64, w http.ResponseWriter, r *http.Request)
 				return
 			}
 
-			status := string(getStatus(db, timestamp))
+			status := getStatus(db, timestamp)
+			// This probably could be refactored; boolean -> []byte -> string -> string
+			// is a bit of a roundabout set of coercions to go through.
 			if status == "true" {
 				status = "came up."
 			}
 			if status == "false" {
 				status = "went down."
 			}
-			time := stampToTime(timestamp)
+			time := time.Unix(timestamp, 0)
 			writer.Write([]byte(fmt.Sprintf("At %v the connection %s", time, status)))
 			if err := writer.Close(); err != nil {
 				return
@@ -54,18 +57,11 @@ func serveWS(db *bolt.DB, nc chan int64, w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func stampToTime(timestamp int64) time.Time {
-	i, err := strconv.ParseInt(strconv.Itoa(int(timestamp)), 10, 64)
-	if err != nil {
-		panic(err)
-	}
-	return time.Unix(i, 0)
-}
-
-func getStatus(db *bolt.DB, timestamp int64) (value []byte) {
+// Wrapper for getting the status for a given timestamp
+func getStatus(db *bolt.DB, timestamp int64) (value string) {
 	db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte("stateChanges"))
-		value = bkt.Get([]byte(fmt.Sprint(timestamp)))
+		value = string(bkt.Get([]byte(fmt.Sprint(timestamp))))
 		return nil
 	})
 	return
@@ -80,5 +76,10 @@ func mainPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	http.ServeFile(w, r, "home.html")
+	homepage, err := Asset("home.html")
+	if err != nil {
+		http.Error(w, "Not found", 404)
+		return
+	}
+	w.Write(homepage)
 }
