@@ -29,8 +29,8 @@ func main() {
 	signal.Notify(termOrder, os.Interrupt)
 
 	go func() {
-		for _ = range termOrder {
-			fmt.Println("Terminating")
+		for sig := range termOrder {
+			fmt.Printf("Terminating: %v", sig)
 			cancel()
 			terminate <- true
 		}

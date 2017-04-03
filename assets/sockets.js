@@ -1,8 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<title>GUptime Log</title>
-<script type="text/javascript">
+require.config({
+    baseUrl: '/js',
+    paths: {
+        d3: "http://d3js.org/d3.v3.min"
+    }
+});
+
 window.onload = function () {
     var conn;
     var msg = document.getElementById("msg");
@@ -28,9 +30,9 @@ window.onload = function () {
     if (window["WebSocket"]) {
         conn = new WebSocket("ws://" + document.location.host + "/status");
         conn.onload = function (evt) {
-          var item = document.createElement("div");
-          item.innerHTML = "<b>Connection opened.</b>";
-          appendLog(item);
+            var item = document.createElement("div");
+            item.innerHTML = "<b>Connection opened.</b>";
+            appendLog(item);
         };
         conn.onclose = function (evt) {
             var item = document.createElement("div");
@@ -38,7 +40,7 @@ window.onload = function () {
             appendLog(item);
         };
         conn.onmessage = function (evt) {
-            console.log('Message caught')
+            console.log('Message caught');
             var messages = evt.data.split('\n');
             for (var i = 0; i < messages.length; i++) {
                 var item = document.createElement("div");
@@ -51,47 +53,10 @@ window.onload = function () {
         item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
         appendLog(item);
     }
+
+    // require(["d3", "c3"], function(d3, c3) {
+    //     c3.generate({
+    //
+    //     });
+    // });
 };
-</script>
-<style type="text/css">
-html {
-    overflow: hidden;
-}
-body {
-    overflow: hidden;
-    padding: 0;
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    background: gray;
-}
-#log {
-    background: white;
-    margin: 0;
-    padding: 0.5em 0.5em 0.5em 0.5em;
-    position: absolute;
-    top: 0.5em;
-    left: 0.5em;
-    right: 0.5em;
-    bottom: 3em;
-    overflow: auto;
-}
-#form {
-    padding: 0 0.5em 0 0.5em;
-    margin: 0;
-    position: absolute;
-    bottom: 1em;
-    left: 0px;
-    width: 100%;
-    overflow: hidden;
-}
-</style>
-</head>
-<body>
-<div id="log"></div>
-<form id="form">
-    <input type="submit" value="Send" />
-    <input type="text" id="msg" size="64"/>
-</form>
-</body>
-</html>

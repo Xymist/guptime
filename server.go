@@ -19,7 +19,7 @@ func server(db *bolt.DB, nc chan int64) {
 	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		serveWS(db, nc, w, r)
 	})
-	http.HandleFunc("/", mainPage)
+	http.HandleFunc("/", homePage)
 	log.Fatal(http.ListenAndServe("127.0.0.1:9000", nil))
 }
 
@@ -48,8 +48,8 @@ func serveWS(db *bolt.DB, nc chan int64, w http.ResponseWriter, r *http.Request)
 			if status == "false" {
 				status = "went down."
 			}
-			time := time.Unix(timestamp, 0)
-			writer.Write([]byte(fmt.Sprintf("At %v the connection %s", time, status)))
+			t := time.Unix(timestamp, 0)
+			writer.Write([]byte(fmt.Sprintf("At %v the connection %s", t, status)))
 			if err := writer.Close(); err != nil {
 				return
 			}
@@ -67,7 +67,7 @@ func getStatus(db *bolt.DB, timestamp int64) (value string) {
 	return
 }
 
-func mainPage(w http.ResponseWriter, r *http.Request) {
+func homePage(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.Error(w, "Not found", 404)
 		return
