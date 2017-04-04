@@ -27,7 +27,7 @@ window.onload = function () {
     };
     if (window["WebSocket"]) {
         conn = new WebSocket("ws://" + document.location.host + "/status");
-        conn.onload = function (evt) {
+        conn.onopen = function (evt) {
           var item = document.createElement("div");
           item.innerHTML = "<b>Connection opened.</b>";
           appendLog(item);
