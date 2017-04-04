@@ -100,7 +100,7 @@ func checkNetPresence(ip string) bool {
 	// Only try once before notifying upstream
 	pinger.Count = 1
 	// A second should do, adjust if necessary
-	pinger.Timeout = 1000 * time.Millisecond
+	pinger.Timeout = 2500 * time.Millisecond
 
 	pinger.OnRecv = func(pkt *ping.Packet) {
 		// All we need to do here is notify.

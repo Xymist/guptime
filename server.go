@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -19,6 +20,7 @@ func server(db *bolt.DB, nc chan int64) {
 	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		serveWS(db, nc, w, r)
 	})
+	http.HandleFunc("/assets/", assetHandler)
 	http.HandleFunc("/", mainPage)
 	log.Fatal(http.ListenAndServe("127.0.0.1:9000", nil))
 }
@@ -82,4 +84,30 @@ func mainPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write(homepage)
+}
+
+func assetHandler(w http.ResponseWriter, r *http.Request) {
+	// Strip the first / off to get the actual path
+	path := r.URL.Path[len("/"):]
+
+	// Retrieve the asset from storage
+	asset, err := Asset(path)
+	if err != nil {
+		http.Error(w, "Not found", 404)
+		return
+	}
+
+	// Set the content type header
+	var contentType string
+	if strings.HasSuffix(path, ".css") {
+		contentType = "text/css"
+	} else if strings.HasSuffix(path, ".png") {
+		contentType = "image/png"
+	} else {
+		contentType = "text/plain"
+	}
+	w.Header().Add("Content-Type", contentType)
+
+	// Respond
+	w.Write(asset)
 }
