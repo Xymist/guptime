@@ -21,11 +21,34 @@ window.onload = function () {
         return false;
     };
     if (window["WebSocket"]) {
+        var now = new Date()
+        var t = now.getTime()
+        var chart = c3.generate({
+          bindto: '#chart',
+          data: {
+            x: 'Time',
+            columns: [
+              ['Time', t],
+              ['Connection', 1]
+            ]
+          },
+          axis : {
+              x : {
+                  type : 'timeseries',
+                  tick: {
+                      format: '%H:%M:%S'
+                  }
+              }
+          }
+        });
         conn = new WebSocket("ws://" + document.location.host + "/status");
+        stats = [];
+        times = [];
         conn.onopen = function (evt) {
           var item = document.createElement("div");
           item.innerHTML = "<b>Connection opened.</b>";
           appendLog(item);
+          conn.send("init")
         };
         conn.onclose = function (evt) {
             var item = document.createElement("div");
@@ -33,17 +56,49 @@ window.onload = function () {
             appendLog(item);
         };
         conn.onmessage = function (evt) {
-            console.log('Message caught')
-            var messages = evt.data.split('\n');
-            for (var i = 0; i < messages.length; i++) {
-                var item = document.createElement("div");
-                item.innerText = messages[i];
-                appendLog(item);
+            var item = document.createElement("div");
+            var message = evt.data;
+            if (message.charAt(0) == '[') {
+              message = JSON.parse(message)
+              times = message[0].map(function(x){
+                return Number(x)
+              })
+              statuses = message[1].map(function(y){
+                if (y == 'true'){
+                  return 1
+                }
+                if (y == 'false'){
+                  return 0
+                }
+              })
+            } else {
+              var splitMsg = message.split(" ")
+              var stamp = Number(splitMsg[1])
+              splitMsg[1] = Date(stamp).toString()
+              message = splitMsg.join(" ")
+              item.innerText = message
+              var d = message.includes("down")
+              var u = message.includes("up")
+
+              times.push(stamp)
+              if (d == true) {
+                stats.push(0)
+              };
+              if (u == true) {
+                stats.push(1)
+              };
+              appendLog(item);
             }
+            chart.load({
+              columns: [
+                ['Time', t].concat(times),
+                ['Connection', 1].concat(stats)
+              ]
+            });
         };
     } else {
         var item = document.createElement("div");
         item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
         appendLog(item);
-    }
+    };
 };
